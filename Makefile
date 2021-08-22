@@ -4,6 +4,5 @@ cargo_fmt_check:
 cargo_fmt:
 	cargo fmt --all
 
-
 cargo_clippy:
 	cargo clippy
