@@ -16,6 +16,12 @@ impl TmpTestFolder {
         Ok(TmpTestFolder { path })
     }
 
+    pub fn new_from_node(node: &FileNode) -> Result<Self, FsTestError> {
+        let r = TmpTestFolder::new()?;
+        r.write(node)?;
+        Ok(r)
+    }
+
     pub fn write(&self, node: &FileNode) -> Result<(), FsTestError> {
         node.write_to_path(&self.path)
     }

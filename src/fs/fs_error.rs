@@ -1,4 +1,3 @@
-use crate::fs::fs_error::FsTestError::IoError;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
@@ -14,7 +13,7 @@ impl Display for FsTestError {
         match self {
             FsTestError::NeedDir => f.write_str("need directory"),
             FsTestError::NeedFile => f.write_str("need file"),
-            IoError(e) => f.write_fmt(format_args!("IO error occurred : {}", e.to_string())),
+            FsTestError::IoError(e) => f.write_fmt(format_args!("IO error occurred : {}", e.to_string())),
         }
     }
 }
@@ -24,13 +23,13 @@ impl Error for FsTestError {
         match self {
             FsTestError::NeedDir => None,
             FsTestError::NeedFile => None,
-            IoError(e) => Some(e),
+            FsTestError::IoError(e) => Some(e),
         }
     }
 }
 
 impl From<std::io::Error> for FsTestError {
     fn from(e: std::io::Error) -> Self {
-        IoError(e)
+        FsTestError::IoError(e)
     }
 }
