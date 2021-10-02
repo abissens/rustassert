@@ -12,7 +12,7 @@ pub struct FailResult {
     pub bt: backtrace::Backtrace,
 }
 
-struct AssertionRef {
+pub(super) struct AssertionRef {
     failures: Vec<Box<dyn Fn()>>,
     f_handler: &'static dyn Fn(FailResult) -> Box<dyn Fn()>,
 }
@@ -159,21 +159,21 @@ impl Drop for AssertionRef {
 }
 
 pub struct Instance<A: ?Sized> {
-    parent: Rc<RefCell<AssertionRef>>,
-    actual: Box<A>,
-    instance_config: InstanceConfig,
+    pub(super) parent: Rc<RefCell<AssertionRef>>,
+    pub(super) actual: Box<A>,
+    pub(super) instance_config: InstanceConfig,
 }
 
-struct InstanceConfig {
-    negation: bool,
+pub(super) struct InstanceConfig {
+    pub(super) negation: bool,
     panic_immediately: bool,
     backtrace: bool,
 }
 
-struct Execution {
-    ok: bool,
-    log: String,
-    nlog: String,
+pub(super) struct Execution {
+    pub(super) ok: bool,
+    pub(super) log: String,
+    pub(super) nlog: String,
 }
 
 impl<A> Instance<A>
@@ -195,7 +195,7 @@ where
         self
     }
 
-    fn handle_execution(&mut self, e: Execution) {
+    pub(super) fn handle_execution(&mut self, e: Execution) {
         if !e.ok && !self.instance_config.negation {
             self.parent.borrow_mut().fail(&self.instance_config, e.log);
         }
@@ -256,31 +256,6 @@ expectation: `{:?}`"#,
     }
 }
 
-impl<A> Instance<&[A]>
-where
-    A: Debug + PartialEq,
-{
-    pub fn contains<E>(&mut self, expected: E)
-    where
-        E: Borrow<A> + Debug,
-    {
-        let ok = matches!(self.actual.iter().find(|a| &expected.borrow() == a), Some(_));
-        self.handle_execution(Execution {
-            ok,
-            log: format!(
-                r#"assertion failed: `(expectation ∈ actual)`
-expectation: `{:?}`"#,
-                expected
-            ),
-            nlog: format!(
-                r#"assertion failed: `(expectation ∉ actual)`
-expectation: `{:?}`"#,
-                expected
-            ),
-        });
-    }
-}
-
 pub trait MatcherTrait<A: ?Sized> {
     fn matcher_fn(&self, a: &A) -> bool;
     fn log_fn(&self, a: &A) -> String;
@@ -301,17 +276,17 @@ impl<A> SimpleMatcher<A> {
     }
 }
 
-impl<A> MatcherTrait<A> for SimpleMatcher<A> {
+impl<A: Debug> MatcherTrait<A> for SimpleMatcher<A> {
     fn matcher_fn(&self, a: &A) -> bool {
         (self.m_fn)(a)
     }
 
-    fn log_fn(&self, _: &A) -> String {
-        return format!("assertion failed: `(matcher {:?} failed)`", self.m_name);
+    fn log_fn(&self, a: &A) -> String {
+        return format!("assertion failed: `(matcher {:?} failed for a = {:?})`", self.m_name, a);
     }
 
-    fn nlog_fn(&self, _: &A) -> String {
-        return format!("assertion failed: `(matcher {:?} succeed while it shouldn't)`", self.m_name);
+    fn nlog_fn(&self, a: &A) -> String {
+        return format!("assertion failed: `(matcher {:?} succeed for a = {:?} while it shouldn't)`", self.m_name, a);
     }
 }
 

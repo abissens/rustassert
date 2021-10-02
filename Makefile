@@ -6,5 +6,6 @@ cargo_fmt:
 
 cargo_clippy:
 	cargo clippy
+
 test:
 	cargo test
