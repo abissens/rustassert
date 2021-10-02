@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::assert;
-    use crate::assert::FailResult;
+    use crate::assert::{FailResult, SimpleMatcher};
+    use crate::fn_matcher;
     use std::path::PathBuf;
     use std::{env, panic};
-
     const BASE_FOLDER: &'static str = env!("CARGO_MANIFEST_DIR");
 
     macro_rules! assert_panic_ignored {
@@ -231,6 +231,39 @@ expectation: `2`"#
                 })
             });
             assert.that(vec![1, 2, 3].as_slice()).not().contains(2);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_do_match_should_pass() {
+        let mut assert = assert::new();
+        assert.that(1).do_match(fn_matcher!(&|a| *a == 1));
+        assert.that(1).not().do_match(fn_matcher!(&|a| *a == 2));
+    }
+
+    #[test]
+    fn assert_do_match_should_fail() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a == 2)\" failed)`");
+                })
+            });
+            assert.that(1).do_match(fn_matcher!(&|a| *a == 2));
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_do_match_should_fail_with_negation() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a == 2)\" succeed while it shouldn't)`");
+                })
+            });
+            assert.that(2).not().do_match(fn_matcher!(&|a| *a == 2));
         });
         assert_panic_ignored!(result)
     }

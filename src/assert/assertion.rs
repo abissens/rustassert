@@ -280,3 +280,60 @@ expectation: `{:?}`"#,
         });
     }
 }
+
+pub trait MatcherTrait<A: ?Sized> {
+    fn matcher_fn(&self, a: &A) -> bool;
+    fn log_fn(&self, a: &A) -> String;
+    fn nlog_fn(&self, a: &A) -> String;
+}
+
+pub struct SimpleMatcher<A: ?Sized> {
+    m_fn: Box<dyn Fn(&A) -> bool>,
+    m_name: String,
+}
+
+impl<A> SimpleMatcher<A> {
+    pub fn new(m_name: &str, m_fn: &'static dyn Fn(&A) -> bool) -> Self {
+        SimpleMatcher {
+            m_fn: Box::new(m_fn),
+            m_name: m_name.to_string(),
+        }
+    }
+}
+
+impl<A> MatcherTrait<A> for SimpleMatcher<A> {
+    fn matcher_fn(&self, a: &A) -> bool {
+        (self.m_fn)(a)
+    }
+
+    fn log_fn(&self, _: &A) -> String {
+        return format!("assertion failed: `(matcher {:?} failed)`", self.m_name);
+    }
+
+    fn nlog_fn(&self, _: &A) -> String {
+        return format!("assertion failed: `(matcher {:?} succeed while it shouldn't)`", self.m_name);
+    }
+}
+
+#[macro_export]
+macro_rules! fn_matcher {
+    ($result:expr) => {
+        SimpleMatcher::new(stringify!($result), $result)
+    };
+}
+
+impl<A> Instance<A>
+where
+    A: ?Sized,
+{
+    pub fn do_match<M>(&mut self, matcher: M)
+    where
+        M: MatcherTrait<A>,
+    {
+        let a = self.actual.as_ref();
+        let ok = matcher.matcher_fn(a);
+        let log = matcher.log_fn(a);
+        let nlog = matcher.nlog_fn(a);
+        self.handle_execution(Execution { ok, log, nlog });
+    }
+}
