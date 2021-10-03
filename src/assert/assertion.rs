@@ -235,27 +235,6 @@ expectation: `{:?}`"#,
     }
 }
 
-impl<A> Instance<&[A]> {
-    pub fn has_len(&mut self, expected: usize) {
-        let a_len = self.actual.as_ref().len();
-        self.handle_execution(Execution {
-            ok: a_len == expected,
-            log: format!(
-                r#"assertion failed: `(actual.len() == expectation)`
-     actual.len(): `{:?}`
-expectation: `{:?}`"#,
-                a_len, expected
-            ),
-            nlog: format!(
-                r#"assertion failed: `(actual.len() != expectation)`
-     actual.len(): `{:?}`
-expectation: `{:?}`"#,
-                a_len, expected
-            ),
-        });
-    }
-}
-
 pub trait MatcherTrait<A: ?Sized> {
     fn matcher_fn(&self, a: &A) -> bool;
     fn log_fn(&self, a: &A) -> String;

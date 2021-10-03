@@ -8,6 +8,51 @@ mod tests {
     use std::panic;
 
     #[test]
+    fn assert_has_len_should_pass() {
+        let mut assert = assert::new();
+        let a: &[i8] = &[1, 2, 3];
+        assert.that(a).has_len(3);
+        assert.that(vec![1, 2, 3].as_slice()).has_len(3);
+        assert.that(vec![1, 2, 3].as_slice()).not().has_len(1);
+    }
+
+    #[test]
+    fn assert_has_len_should_fail() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(
+                        fr.log,
+                        r#"assertion failed: `(actual.len() == expectation)`
+     actual.len(): `3`
+expectation: `4`"#
+                    );
+                })
+            });
+            assert.that(vec![1, 2, 3].as_slice()).has_len(4);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_has_len_should_fail_with_negation() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(
+                        fr.log,
+                        r#"assertion failed: `(actual.len() != expectation)`
+     actual.len(): `3`
+expectation: `3`"#
+                    );
+                })
+            });
+            assert.that(vec![1, 2, 3].as_slice()).not().has_len(3);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
     fn assert_contains_should_pass() {
         let mut assert = assert::new();
         let a: &[i8] = &[1, 2, 3];
@@ -21,11 +66,7 @@ mod tests {
         let result = panic::catch_unwind(|| {
             let mut assert = assert::new_with_handler(&|fr: FailResult| {
                 Box::new(move || {
-                    assert_eq!(
-                        fr.log,
-                        r#"assertion failed: `(expectation ∈ actual)`
-expectation: `4`"#
-                    );
+                    assert_eq!(fr.log, "assertion failed: `(expectation ∈ actual)`");
                 })
             });
             assert.that(vec![1, 2, 3].as_slice()).contains(4);
@@ -38,11 +79,7 @@ expectation: `4`"#
         let result = panic::catch_unwind(|| {
             let mut assert = assert::new_with_handler(&|fr: FailResult| {
                 Box::new(move || {
-                    assert_eq!(
-                        fr.log,
-                        r#"assertion failed: `(expectation ∉ actual)`
-expectation: `2`"#
-                    );
+                    assert_eq!(fr.log, "assertion failed: `(expectation ∉ actual)`");
                 })
             });
             assert.that(vec![1, 2, 3].as_slice()).not().contains(2);
@@ -112,7 +149,7 @@ expectation: `2`"#
         let result = panic::catch_unwind(|| {
             let mut assert = assert::new_with_handler(&|fr: FailResult| {
                 Box::new(move || {
-                    assert_eq!(fr.log, "assertion failed: `(matcher succeed for item 2)`");
+                    assert_eq!(fr.log, "assertion failed: `(matcher succeed for item position 1)`");
                 })
             });
             assert.that(vec![-1, 2, -3].as_slice()).not().any(fn_matcher!(&|a| *a > 0));

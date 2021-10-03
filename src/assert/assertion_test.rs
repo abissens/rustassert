@@ -149,51 +149,6 @@ expectation: `"a"`"#
     }
 
     #[test]
-    fn assert_has_len_should_pass() {
-        let mut assert = assert::new();
-        let a: &[i8] = &[1, 2, 3];
-        assert.that(a).has_len(3);
-        assert.that(vec![1, 2, 3].as_slice()).has_len(3);
-        assert.that(vec![1, 2, 3].as_slice()).not().has_len(1);
-    }
-
-    #[test]
-    fn assert_has_len_should_fail() {
-        let result = panic::catch_unwind(|| {
-            let mut assert = assert::new_with_handler(&|fr: FailResult| {
-                Box::new(move || {
-                    assert_eq!(
-                        fr.log,
-                        r#"assertion failed: `(actual.len() == expectation)`
-     actual.len(): `3`
-expectation: `4`"#
-                    );
-                })
-            });
-            assert.that(vec![1, 2, 3].as_slice()).has_len(4);
-        });
-        assert_panic_ignored!(result)
-    }
-
-    #[test]
-    fn assert_has_len_should_fail_with_negation() {
-        let result = panic::catch_unwind(|| {
-            let mut assert = assert::new_with_handler(&|fr: FailResult| {
-                Box::new(move || {
-                    assert_eq!(
-                        fr.log,
-                        r#"assertion failed: `(actual.len() != expectation)`
-     actual.len(): `3`
-expectation: `3`"#
-                    );
-                })
-            });
-            assert.that(vec![1, 2, 3].as_slice()).not().has_len(3);
-        });
-        assert_panic_ignored!(result)
-    }
-
-    #[test]
     fn assert_do_match_should_pass() {
         let mut assert = assert::new();
         assert.that(1).do_match(fn_matcher!(&|a| *a == 1));
