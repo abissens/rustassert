@@ -2,7 +2,7 @@ use crate::fs::file_tree::FileNode;
 use crate::fs::fs_error::FsTestError;
 use std::env::temp_dir;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 pub struct TmpTestFolder {
@@ -30,7 +30,7 @@ impl TmpTestFolder {
         FileNode::new_from_path(self.path.as_path())
     }
 
-    pub fn get_path(&self) -> &PathBuf {
+    pub fn get_path(&self) -> &Path {
         &self.path
     }
 }
@@ -63,7 +63,7 @@ mod tests {
             assert!(test_folder.get_path().exists());
             assert!(test_folder.get_path().is_dir());
 
-            saved_path = test_folder.get_path().clone();
+            saved_path = test_folder.get_path().to_path_buf();
         }
         assert!(!saved_path.exists());
     }
@@ -74,7 +74,7 @@ mod tests {
 
         {
             let test_folder = TmpTestFolder::new().unwrap();
-            saved_path = test_folder.get_path().clone();
+            saved_path = test_folder.get_path().to_path_buf();
 
             test_folder
                 .write(&FileNode::File {
@@ -159,7 +159,7 @@ mod tests {
 
         {
             let test_folder = TmpTestFolder::new().unwrap();
-            saved_path = test_folder.get_path().clone();
+            saved_path = test_folder.get_path().to_path_buf();
 
             test_folder
                 .write(&FileNode::File {
