@@ -160,7 +160,7 @@ expectation: `"a"`"#
         let result = panic::catch_unwind(|| {
             let mut assert = assert::new_with_handler(&|fr: FailResult| {
                 Box::new(move || {
-                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a == 2)\" failed for a = 1)`");
+                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a == 2)\" failed)`");
                 })
             });
             assert.that(1).do_match(fn_matcher!(&|a| *a == 2));
@@ -173,7 +173,7 @@ expectation: `"a"`"#
         let result = panic::catch_unwind(|| {
             let mut assert = assert::new_with_handler(&|fr: FailResult| {
                 Box::new(move || {
-                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a == 2)\" succeed for a = 2 while it shouldn't)`");
+                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a == 2)\" succeed while it shouldn't)`");
                 })
             });
             assert.that(2).not().do_match(fn_matcher!(&|a| *a == 2));

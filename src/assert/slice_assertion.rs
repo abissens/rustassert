@@ -16,6 +16,37 @@ where
             nlog: "assertion failed: `(expectation ∉ actual)`".to_string(),
         });
     }
+
+    pub fn eq_each<E>(&mut self, expected: &[E])
+    where
+        E: Borrow<A>,
+    {
+        if self.instance_config.negation {
+            self.handle_execution(Execution {
+                ok: true,
+                log: "".to_string(),
+                nlog: "eq_each assertion cannot be negated".to_string(),
+            });
+            return;
+        }
+        if self.actual.len() != expected.len() {
+            let log = "expectation length is different from input length";
+            self.handle_execution(Execution {
+                ok: false,
+                log: log.to_string(),
+                nlog: "".to_string(),
+            });
+            return;
+        }
+        self.actual.iter().enumerate().for_each(|(pos, a)| {
+            let ok = matches!(expected.get(pos), Some(e) if e.borrow() == a);
+            self.handle_execution(Execution {
+                ok,
+                log: format!("assertion failed: `(expectation[{}] = actual[{}])`", pos, pos),
+                nlog: "".to_string(),
+            });
+        });
+    }
 }
 
 impl<A> Instance<&[A]> {
@@ -38,16 +69,57 @@ expectation: `{:?}`"#,
         });
     }
 
+    pub fn each<M>(&mut self, matchers: &[M])
+    where
+        M: MatcherTrait<A>,
+    {
+        if self.instance_config.negation {
+            self.handle_execution(Execution {
+                ok: true,
+                log: "".to_string(),
+                nlog: "each assertion cannot be negated".to_string(),
+            });
+            return;
+        }
+        if self.actual.len() != matchers.len() {
+            let log = "matchers length is different from input length";
+            self.handle_execution(Execution {
+                ok: false,
+                log: log.to_string(),
+                nlog: "".to_string(),
+            });
+            return;
+        }
+        self.actual.iter().enumerate().for_each(|(pos, a)| {
+            if let Some(matcher) = matchers.get(pos) {
+                let ok = matcher.matcher_fn(a);
+                self.handle_execution(Execution {
+                    ok,
+                    log: format!("{} - at position {}", matcher.log_fn(a), pos),
+                    nlog: "".to_string(),
+                });
+            } else {
+                self.handle_execution(Execution {
+                    ok: false,
+                    log: format!("matcher not found as position {}", pos),
+                    nlog: "".to_string(),
+                });
+            }
+        })
+    }
+
     pub fn all<M>(&mut self, matcher: M)
     where
         M: MatcherTrait<A>,
     {
         if !self.instance_config.negation {
-            self.actual.iter().for_each(|a| {
+            self.actual.iter().enumerate().for_each(|(pos, a)| {
                 let ok = matcher.matcher_fn(a);
-                let log = matcher.log_fn(a);
-                let nlog = matcher.nlog_fn(a);
-                self.handle_execution(Execution { ok, log, nlog });
+                self.handle_execution(Execution {
+                    ok,
+                    log: format!("{} - at position {}", matcher.log_fn(a), pos),
+                    nlog: "".to_string(),
+                });
             })
         } else {
             let found = self.actual.iter().any(|a| !matcher.matcher_fn(a));

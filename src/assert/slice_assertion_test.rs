@@ -88,6 +88,106 @@ expectation: `3`"#
     }
 
     #[test]
+    fn assert_eq_each_should_pass() {
+        let mut assert = assert::new();
+        assert.that(vec![1, 2, 3].as_slice()).eq_each(&[1, 2, 3]);
+        assert.that(vec![1, 2, 3].as_slice()).eq_each(&[&1, &2, &3]);
+    }
+
+    #[test]
+    fn assert_eq_each_should_fail() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "assertion failed: `(expectation[1] = actual[1])`");
+                })
+            });
+            assert.that(vec![1, 0, 3].as_slice()).eq_each(&[1, 2, 3]);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_eq_each_should_fail_when_different_length() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "expectation length is different from input length");
+                })
+            });
+            assert.that(vec![1, 2].as_slice()).eq_each(&[1, 2, 3]);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_eq_each_should_prevent_negation() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "eq_each assertion cannot be negated");
+                })
+            });
+            assert.that(vec![1, 0, 3].as_slice()).not().eq_each(&[1, 2, 3]);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_each_should_pass() {
+        let mut assert = assert::new();
+        assert
+            .that(vec![1, 2, 3].as_slice())
+            .each(&[fn_matcher!(&|p| *p > 0), fn_matcher!(&|p| *p % 2 == 0), fn_matcher!(&|p| *p == 3)]);
+    }
+
+    #[test]
+    fn assert_each_should_fail() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|p| *p % 2 == 1)\" failed)` - at position 1");
+                })
+            });
+            assert
+                .that(vec![1, 2, 3].as_slice())
+                .each(&[fn_matcher!(&|p| *p > 0), fn_matcher!(&|p| *p % 2 == 1), fn_matcher!(&|p| *p == 3)]);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_each_should_fail_when_different_length() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "matchers length is different from input length");
+                })
+            });
+            assert
+                .that(vec![1, 2].as_slice())
+                .each(&[fn_matcher!(&|p| *p > 0), fn_matcher!(&|p| *p % 2 == 0), fn_matcher!(&|p| *p == 3)]);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
+    fn assert_each_should_prevent_negation() {
+        let result = panic::catch_unwind(|| {
+            let mut assert = assert::new_with_handler(&|fr: FailResult| {
+                Box::new(move || {
+                    assert_eq!(fr.log, "each assertion cannot be negated");
+                })
+            });
+            assert
+                .that(vec![1, 2].as_slice())
+                .not()
+                .each(&[fn_matcher!(&|p| *p > 0), fn_matcher!(&|p| *p % 2 == 0), fn_matcher!(&|p| *p == 3)]);
+        });
+        assert_panic_ignored!(result)
+    }
+
+    #[test]
     fn assert_all_should_pass() {
         let mut assert = assert::new();
         assert.that(vec![].as_slice()).all(fn_matcher!(&|a: &i32| *a > 0));
@@ -101,7 +201,7 @@ expectation: `3`"#
         let result = panic::catch_unwind(|| {
             let mut assert = assert::new_with_handler(&|fr: FailResult| {
                 Box::new(move || {
-                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a > 0)\" failed for a = -2)`");
+                    assert_eq!(fr.log, "assertion failed: `(matcher \"&(|a| *a > 0)\" failed)` - at position 1");
                 })
             });
             assert.that(vec![1, -2, 3].as_slice()).all(fn_matcher!(&|a| *a > 0));

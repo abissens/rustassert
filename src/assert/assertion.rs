@@ -255,17 +255,17 @@ impl<A> SimpleMatcher<A> {
     }
 }
 
-impl<A: Debug> MatcherTrait<A> for SimpleMatcher<A> {
+impl<A> MatcherTrait<A> for SimpleMatcher<A> {
     fn matcher_fn(&self, a: &A) -> bool {
         (self.m_fn)(a)
     }
 
-    fn log_fn(&self, a: &A) -> String {
-        return format!("assertion failed: `(matcher {:?} failed for a = {:?})`", self.m_name, a);
+    fn log_fn(&self, _: &A) -> String {
+        return format!("assertion failed: `(matcher {:?} failed)`", self.m_name);
     }
 
-    fn nlog_fn(&self, a: &A) -> String {
-        return format!("assertion failed: `(matcher {:?} succeed for a = {:?} while it shouldn't)`", self.m_name, a);
+    fn nlog_fn(&self, _: &A) -> String {
+        return format!("assertion failed: `(matcher {:?} succeed while it shouldn't)`", self.m_name);
     }
 }
 
