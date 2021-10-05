@@ -27,6 +27,9 @@ mod tests {
         assert.that("a").is_eq("a");
         assert.that("a").not().is_eq("b");
 
+        assert.that(1).transform(|a| Box::new(format!("{}", a))).is_eq(String::from("1"));
+        assert.that(2).transform(|a| Box::new(format!("{}", a))).not().is_eq(String::from("1"));
+
         assert.that(String::from("a")).is_eq(String::from("a"));
         assert.that(String::from("a")).not().is_eq(String::from("b"));
 
@@ -78,7 +81,7 @@ expectation: `"b"`"#
                             f: vec![FrameSum {
                                 v: vec![FrameSymSum {
                                     name: "rustassert::assert::assertion_test::tests::assert_eq_should_fail::{{closure}}".to_string(),
-                                    line: 89,
+                                    line: 92,
                                     file: PathBuf::from(BASE_FOLDER).join(file!()),
                                 }]
                             }]
@@ -107,7 +110,7 @@ expectation: `"b"`"#
                     assert!(bs.f.contains(&FrameSum {
                         v: vec![FrameSymSum {
                             name: "rustassert::assert::assertion_test::tests::assert_eq_should_fail_with_backtrace::{{closure}}".to_string(),
-                            line: 116,
+                            line: 119,
                             file: PathBuf::from(BASE_FOLDER).join(file!()),
                         }]
                     }));
@@ -135,7 +138,7 @@ expectation: `"a"`"#
                             f: vec![FrameSum {
                                 v: vec![FrameSymSum {
                                     name: "rustassert::assert::assertion_test::tests::assert_eq_should_fail_with_negation::{{closure}}".to_string(),
-                                    line: 146,
+                                    line: 149,
                                     file: PathBuf::from(BASE_FOLDER).join(file!()),
                                 }]
                             }]

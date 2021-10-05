@@ -164,6 +164,7 @@ pub struct Instance<A: ?Sized> {
     pub(super) instance_config: InstanceConfig,
 }
 
+#[derive(Clone)]
 pub(super) struct InstanceConfig {
     pub(super) negation: bool,
     panic_immediately: bool,
@@ -202,6 +203,14 @@ where
 
         if e.ok && self.instance_config.negation {
             self.parent.borrow_mut().fail(&self.instance_config, e.nlog);
+        }
+    }
+
+    pub fn transform<E: ?Sized, T: FnMut(&A) -> Box<E>>(&mut self, mut transformer: T) -> Instance<E> {
+        Instance {
+            parent: Rc::clone(&self.parent),
+            actual: transformer(&self.actual),
+            instance_config: self.instance_config.clone(),
         }
     }
 }

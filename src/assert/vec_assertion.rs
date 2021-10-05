@@ -1,7 +1,8 @@
 use crate::assert::{Execution, Instance, MatcherTrait};
 use std::borrow::Borrow;
+use std::rc::Rc;
 
-impl<A> Instance<&[A]>
+impl<A> Instance<Vec<A>>
 where
     A: PartialEq,
 {
@@ -38,18 +39,28 @@ where
             });
             return;
         }
-        self.actual.iter().enumerate().for_each(|(pos, a)| {
+        for pos in 0..self.actual.len() {
+            let a = self.actual.get(pos).unwrap();
             let ok = matches!(expected.get(pos), Some(e) if e.borrow() == a);
             self.handle_execution(Execution {
                 ok,
                 log: format!("assertion failed: `(expectation[{}] = actual[{}])`", pos, pos),
                 nlog: "".to_string(),
             });
-        });
+        }
     }
 }
 
-impl<A> Instance<&[A]> {
+impl<A> Instance<Vec<A>> {
+    pub fn map<E, T: FnMut(&A) -> E>(&mut self, mapper: T) -> Instance<Vec<E>> {
+        let actual = self.actual.iter().map(mapper).collect::<Vec<_>>();
+        Instance {
+            parent: Rc::clone(&self.parent),
+            actual: Box::new(actual),
+            instance_config: self.instance_config.clone(),
+        }
+    }
+
     pub fn has_len(&mut self, expected: usize) {
         let a_len = self.actual.as_ref().len();
         self.handle_execution(Execution {
@@ -90,12 +101,14 @@ expectation: `{:?}`"#,
             });
             return;
         }
-        self.actual.iter().enumerate().for_each(|(pos, a)| {
+        for pos in 0..self.actual.len() {
+            let a = self.actual.get(pos).unwrap();
             if let Some(matcher) = matchers.get(pos) {
                 let ok = matcher.matcher_fn(a);
+                let log = matcher.log_fn(a);
                 self.handle_execution(Execution {
                     ok,
-                    log: format!("{} - at position {}", matcher.log_fn(a), pos),
+                    log: format!("{} - at position {}", log, pos),
                     nlog: "".to_string(),
                 });
             } else {
@@ -105,7 +118,7 @@ expectation: `{:?}`"#,
                     nlog: "".to_string(),
                 });
             }
-        })
+        }
     }
 
     pub fn all<M>(&mut self, matcher: M)
@@ -113,14 +126,16 @@ expectation: `{:?}`"#,
         M: MatcherTrait<A>,
     {
         if !self.instance_config.negation {
-            self.actual.iter().enumerate().for_each(|(pos, a)| {
+            for pos in 0..self.actual.len() {
+                let a = self.actual.get(pos).unwrap();
                 let ok = matcher.matcher_fn(a);
+                let log = matcher.log_fn(a);
                 self.handle_execution(Execution {
                     ok,
-                    log: format!("{} - at position {}", matcher.log_fn(a), pos),
+                    log: format!("{} - at position {}", log, pos),
                     nlog: "".to_string(),
                 });
-            })
+            }
         } else {
             let found = self.actual.iter().any(|a| !matcher.matcher_fn(a));
             if !found {
