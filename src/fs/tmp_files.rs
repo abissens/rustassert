@@ -7,13 +7,18 @@ use uuid::Uuid;
 
 pub struct TmpTestFolder {
     path: PathBuf,
+    remove_on_drop: bool,
 }
 
 impl TmpTestFolder {
     pub fn new() -> Result<Self, FsTestError> {
         let path = temp_dir().as_path().join(Uuid::new_v4().to_string());
         fs::create_dir(&path)?;
-        Ok(TmpTestFolder { path })
+        Ok(TmpTestFolder { path, remove_on_drop: true })
+    }
+
+    pub fn preserve(&mut self) {
+        self.remove_on_drop = false;
     }
 
     pub fn new_from_node(node: &FileNode) -> Result<Self, FsTestError> {
@@ -37,7 +42,9 @@ impl TmpTestFolder {
 
 impl Drop for TmpTestFolder {
     fn drop(&mut self) {
-        fs::remove_dir_all(&self.path).unwrap();
+        if self.remove_on_drop {
+            fs::remove_dir_all(&self.path).unwrap();
+        }
     }
 }
 
@@ -66,6 +73,23 @@ mod tests {
             saved_path = test_folder.get_path().to_path_buf();
         }
         assert!(!saved_path.exists());
+    }
+
+    #[test]
+    fn should_not_remove_test_folder_when_preserve_is_set() {
+        let saved_path: PathBuf;
+
+        {
+            let mut test_folder = TmpTestFolder::new().unwrap();
+
+            test_folder.preserve();
+
+            assert!(test_folder.get_path().exists());
+            assert!(test_folder.get_path().is_dir());
+
+            saved_path = test_folder.get_path().to_path_buf();
+        }
+        assert!(saved_path.exists());
     }
 
     #[test]
