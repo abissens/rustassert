@@ -1,13 +1,13 @@
 use crate::fs::fs_error::FsTestError;
 use crate::fs::fs_error::FsTestError::{NeedDir, NeedFile};
 use std::fs;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
 pub enum FileNode {
     Dir { name: String, sub: Vec<FileNode> },
-    File { name: String, content: Vec<u8> },
+    File { name: String, open_options: Option<OpenOptions>, content: Vec<u8> },
 }
 
 impl PartialEq for FileNode {
@@ -36,8 +36,8 @@ impl PartialEq for FileNode {
                 }
                 _ => false,
             },
-            FileNode::File { content, name } => match other {
-                FileNode::File { content: o_content, name: o_name } => name == o_name && content == o_content,
+            FileNode::File { content, name, .. } => match other {
+                FileNode::File { content: o_content, name: o_name, .. } => name == o_name && content == o_content,
                 _ => false,
             },
         };
@@ -53,7 +53,11 @@ impl FileNode {
     }
 
     pub fn new_file(name: &str, content: Vec<u8>) -> Self {
-        FileNode::File { name: String::from(name), content }
+        FileNode::File {
+            name: String::from(name),
+            open_options: None,
+            content,
+        }
     }
 
     pub fn new_from_path(pb: &Path) -> Result<Self, FsTestError> {
@@ -82,8 +86,15 @@ impl FileNode {
                 }
                 Ok(())
             }
-            FileNode::File { name, content } => {
-                let f = File::create(root_dir.join(name))?;
+            FileNode::File { name, content, open_options } => {
+                let path = root_dir.join(name);
+                let f = if !path.exists() {
+                    File::create(path)?
+                } else if let Some(oo) = open_options {
+                    oo.open(path)?
+                } else {
+                    fs::OpenOptions::new().write(true).open(path)?
+                };
                 let mut f = BufWriter::new(&f);
                 f.write_all(&content)?;
                 f.flush()?;
@@ -106,6 +117,7 @@ impl FileNode {
                         s = FileNode::File {
                             name: "".to_string(),
                             content: vec![],
+                            open_options: None,
                         };
                     } else {
                         s = FileNode::Dir { name: "".to_string(), sub: vec![] };
@@ -115,7 +127,7 @@ impl FileNode {
                 }
                 Ok(())
             }
-            FileNode::File { ref mut name, ref mut content } => {
+            FileNode::File { ref mut name, ref mut content, .. } => {
                 if !pb.is_file() {
                     return Err(NeedFile);
                 }
@@ -160,10 +172,12 @@ mod tests {
                     FileNode::File {
                         name: "fr1".to_string(),
                         content: Vec::new(),
+                        open_options: None,
                     },
                     FileNode::File {
                         name: "fr1".to_string(),
                         content: "file content r2".as_bytes().to_vec(),
+                        open_options: None,
                     },
                     FileNode::Dir {
                         name: "d1".to_string(),
@@ -171,20 +185,24 @@ mod tests {
                             FileNode::File {
                                 name: "f1".to_string(),
                                 content: "file content 1".as_bytes().to_vec(),
+                                open_options: None,
                             },
                             FileNode::File {
                                 name: "f2".to_string(),
                                 content: "file content 2".as_bytes().to_vec(),
+                                open_options: None,
                             },
                             FileNode::File {
                                 name: "f3".to_string(),
                                 content: "file content 3".as_bytes().to_vec(),
+                                open_options: None,
                             },
                             FileNode::Dir {
                                 name: "d11".to_string(),
                                 sub: vec![FileNode::File {
                                     name: "f11".to_string(),
                                     content: "file content 11".as_bytes().to_vec(),
+                                    open_options: None,
                                 }],
                             },
                         ],
@@ -210,6 +228,7 @@ mod tests {
         let file_node = FileNode::File {
             name: file_name,
             content: "file content".as_bytes().to_vec(),
+            open_options: None,
         };
 
         let result = file_node.write_to_path(&tmp_path.join("some_file"));
@@ -240,10 +259,12 @@ mod tests {
                 FileNode::File {
                     name: "fr1".to_string(),
                     content: Vec::new(),
+                    open_options: None,
                 },
                 FileNode::File {
                     name: "fr2".to_string(),
                     content: "file content fr2".as_bytes().to_vec(),
+                    open_options: None,
                 },
                 FileNode::Dir {
                     name: "d1".to_string(),
@@ -251,20 +272,24 @@ mod tests {
                         FileNode::File {
                             name: "f1".to_string(),
                             content: "file content 1".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f2".to_string(),
                             content: "file content 2".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f3".to_string(),
                             content: "file content 3".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::Dir {
                             name: "d11".to_string(),
                             sub: vec![FileNode::File {
                                 name: "f11".to_string(),
                                 content: "file content 11".as_bytes().to_vec(),
+                                open_options: None,
                             }],
                         },
                     ],
@@ -285,6 +310,7 @@ mod tests {
                 sub: vec![FileNode::File {
                     name: "f4".to_string(),
                     content: "file content 4".as_bytes().to_vec(),
+                    open_options: None,
                 }],
             }],
         }
@@ -339,6 +365,68 @@ mod tests {
     }
 
     #[test]
+    fn write_to_path_should_overwrite_file_when_exists() {
+        let tmp_path = temp_dir();
+        let file_name = Uuid::new_v4().to_string();
+        let file_node = FileNode::File {
+            name: file_name.clone(),
+            content: "file content".as_bytes().to_vec(),
+            open_options: None,
+        };
+
+        file_node.write_to_path(&tmp_path).unwrap();
+
+        assert!(tmp_path.join(&file_name).is_file());
+        assert_eq!(fs::read_to_string(tmp_path.join(&file_name)).unwrap(), "file content");
+
+        let file_node = FileNode::File {
+            name: file_name.clone(),
+            content: "file content updated".as_bytes().to_vec(),
+            open_options: None,
+        };
+
+        file_node.write_to_path(&tmp_path).unwrap();
+
+        assert!(tmp_path.join(&file_name).is_file());
+        assert_eq!(fs::read_to_string(tmp_path.join(&file_name)).unwrap(), "file content updated");
+
+        fs::remove_file(tmp_path.join(&file_name)).unwrap();
+    }
+
+    #[test]
+    fn write_to_path_should_use_input_options() {
+        let tmp_path = temp_dir();
+        let file_name = Uuid::new_v4().to_string();
+        let file_node = FileNode::File {
+            name: file_name.clone(),
+            content: "file content.".as_bytes().to_vec(),
+            open_options: None,
+        };
+
+        file_node.write_to_path(&tmp_path).unwrap();
+
+        assert!(tmp_path.join(&file_name).is_file());
+        assert_eq!(fs::read_to_string(tmp_path.join(&file_name)).unwrap(), "file content.");
+
+        let file_node = FileNode::File {
+            name: file_name.clone(),
+            content: " appended content".as_bytes().to_vec(),
+            open_options: Some({
+                let mut options = OpenOptions::new();
+                options.append(true);
+                options
+            }),
+        };
+
+        file_node.write_to_path(&tmp_path).unwrap();
+
+        assert!(tmp_path.join(&file_name).is_file());
+        assert_eq!(fs::read_to_string(tmp_path.join(&file_name)).unwrap(), "file content. appended content");
+
+        fs::remove_file(tmp_path.join(&file_name)).unwrap();
+    }
+
+    #[test]
     fn write_to_path_should_write_empty_folder_hierarchy() {
         let tmp_path = temp_dir();
         let folder_root_name = Uuid::new_v4().to_string();
@@ -349,10 +437,12 @@ mod tests {
                 FileNode::File {
                     name: "fr1".to_string(),
                     content: Vec::new(),
+                    open_options: None,
                 },
                 FileNode::File {
                     name: "fr2".to_string(),
                     content: "file content fr2".as_bytes().to_vec(),
+                    open_options: None,
                 },
                 FileNode::Dir {
                     name: "d1".to_string(),
@@ -360,20 +450,24 @@ mod tests {
                         FileNode::File {
                             name: "f1".to_string(),
                             content: "file content 1".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f2".to_string(),
                             content: "file content 2".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f3".to_string(),
                             content: "file content 3".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::Dir {
                             name: "d11".to_string(),
                             sub: vec![FileNode::File {
                                 name: "f11".to_string(),
                                 content: "file content 11".as_bytes().to_vec(),
+                                open_options: None,
                             }],
                         },
                     ],
@@ -426,10 +520,12 @@ mod tests {
                 FileNode::File {
                     name: "fr1".to_string(),
                     content: Vec::new(),
+                    open_options: None,
                 },
                 FileNode::File {
                     name: "fr2".to_string(),
                     content: "file content fr2".as_bytes().to_vec(),
+                    open_options: None,
                 },
                 FileNode::Dir {
                     name: "d1".to_string(),
@@ -437,20 +533,24 @@ mod tests {
                         FileNode::File {
                             name: "f1".to_string(),
                             content: "file content 1".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f2".to_string(),
                             content: "file content 2".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f3".to_string(),
                             content: "file content 3".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::Dir {
                             name: "d11".to_string(),
                             sub: vec![FileNode::File {
                                 name: "f11".to_string(),
                                 content: "file content 11".as_bytes().to_vec(),
+                                open_options: None,
                             }],
                         },
                     ],

@@ -104,6 +104,7 @@ mod tests {
                 .write(&FileNode::File {
                     name: "fr1".to_string(),
                     content: Vec::new(),
+                    open_options: None,
                 })
                 .unwrap();
 
@@ -111,6 +112,7 @@ mod tests {
                 .write(&FileNode::File {
                     name: "fr2".to_string(),
                     content: "file content fr2".as_bytes().to_vec(),
+                    open_options: None,
                 })
                 .unwrap();
 
@@ -128,20 +130,24 @@ mod tests {
                         FileNode::File {
                             name: "f1".to_string(),
                             content: "file content 1".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f2".to_string(),
                             content: "file content 2".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f3".to_string(),
                             content: "file content 3".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::Dir {
                             name: "d11".to_string(),
                             sub: vec![FileNode::File {
                                 name: "f11".to_string(),
                                 content: "file content 11".as_bytes().to_vec(),
+                                open_options: None,
                             }],
                         },
                     ],
@@ -189,6 +195,7 @@ mod tests {
                 .write(&FileNode::File {
                     name: "fr1".to_string(),
                     content: Vec::new(),
+                    open_options: None,
                 })
                 .unwrap();
 
@@ -196,6 +203,7 @@ mod tests {
                 .write(&FileNode::File {
                     name: "fr2".to_string(),
                     content: "file content fr2".as_bytes().to_vec(),
+                    open_options: None,
                 })
                 .unwrap();
 
@@ -213,20 +221,24 @@ mod tests {
                         FileNode::File {
                             name: "f1".to_string(),
                             content: "file content 1".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f2".to_string(),
                             content: "file content 2".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::File {
                             name: "f3".to_string(),
                             content: "file content 3".as_bytes().to_vec(),
+                            open_options: None,
                         },
                         FileNode::Dir {
                             name: "d11".to_string(),
                             sub: vec![FileNode::File {
                                 name: "f11".to_string(),
                                 content: "file content 11".as_bytes().to_vec(),
+                                open_options: None,
                             }],
                         },
                     ],
@@ -243,10 +255,12 @@ mod tests {
                             FileNode::File {
                                 name: "fr1".to_string(),
                                 content: Vec::new(),
+                                open_options: None,
                             },
                             FileNode::File {
                                 name: "fr2".to_string(),
                                 content: "file content fr2".as_bytes().to_vec(),
+                                open_options: None,
                             },
                             FileNode::Dir {
                                 name: "d1".to_string(),
@@ -254,20 +268,24 @@ mod tests {
                                     FileNode::File {
                                         name: "f1".to_string(),
                                         content: "file content 1".as_bytes().to_vec(),
+                                        open_options: None,
                                     },
                                     FileNode::File {
                                         name: "f2".to_string(),
                                         content: "file content 2".as_bytes().to_vec(),
+                                        open_options: None,
                                     },
                                     FileNode::File {
                                         name: "f3".to_string(),
                                         content: "file content 3".as_bytes().to_vec(),
+                                        open_options: None,
                                     },
                                     FileNode::Dir {
                                         name: "d11".to_string(),
                                         sub: vec![FileNode::File {
                                             name: "f11".to_string(),
                                             content: "file content 11".as_bytes().to_vec(),
+                                            open_options: None,
                                         }],
                                     },
                                 ],
